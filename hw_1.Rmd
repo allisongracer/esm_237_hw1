@@ -25,6 +25,7 @@ Los Angeles is a large city in Southern California. It is predominantly urban an
 
 The climate impacts in Los Angeles are significant due to the city's location in Southern California, where wildfires can be a major concern. The dry, hot weather in the summer can increase the risk of wildfires, devastatingly affecting the city and surrounding areas. In addition, the city has also experienced severe droughts in recent years, which can impact agriculture and water resources and harm human health. For these reasons, climate impacts are important for its residents and policymakers.   
 
+
 ```{r}
 # Read in the data
 ## Monthly data from 1915 to 2023
