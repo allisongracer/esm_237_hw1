@@ -9,6 +9,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 ```{r}
+# Read in packages
 library(lubridate)
 library(tidyverse)
 library(here)
@@ -26,6 +27,7 @@ This report analyzes climate trends from
 ## Monthly data from 1915 to 2023
 LA_monthly <- read_csv(here("data/LA_monthly_1915_2023.csv")) %>% 
   clean_names() %>% 
+  mutate(new_date = lubridate::ym(LA_monthly$date)) %>%
   tidyr::separate(date, c("year", "month"), sep ="-", remove = FALSE)
 
 LA_monthly$year = as.numeric(LA_monthly$year)
@@ -45,8 +47,21 @@ LA_daily$day = as.numeric(LA_daily$day)
 ```{r}
 # Initial data exploration
 
-ggplot(LA_monthly,aes(x=date,y=ppt_inches)) +
+ggplot(LA_daily,aes(x=new_date,y=ppt_inches)) +
   geom_line()
 
+
+ggplot(LA_monthly,aes(x=new_date,y=ppt_inches)) +
+  geom_line()
+
+ggplot(LA_daily, aes(x=new_date, y=tmax_degrees_f)) +
+  geom_line()
+
+ggplot(LA_monthly, aes(x=new_date, y=tmax_degrees_f)) +
+  geom_line()
+
+ggplot(LA_monthly, aes(x=new_date, y=ppt_inches)) +
+  geom_line()
 ```
+
 
