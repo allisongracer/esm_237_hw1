@@ -19,8 +19,11 @@ library(janitor)
 
 ###1. Overview
 
-This report analyzes climate trends from 
+This report analyzes climate trends in Los Angeles County from 1915-2023 using data from PRISM Climate Group. Specifically, the data sets used include monthly data from 1915-2023 and daily data from 1981-2023. The variables used include precipitation (inches), minimum temperature (Fahrenheit), maximum temperature (Fahrenheit), and mean temperature (Fahrenheit). 
 
+Los Angeles is a large city in Southern California. It is predominantly urban and is home to a dense population of 12.5 million people as of 2023. Los Angeles is classified as a semi-arid desert climate, characterized by hot and dry summers and mild winters with precipitation levels that vary by year. 
+
+The climate impacts in Los Angeles are significant due to the city's location in Southern California, where wildfires can be a major concern. The dry, hot weather in the summer can increase the risk of wildfires, devastatingly affecting the city and surrounding areas. In addition, the city has also experienced severe droughts in recent years, which can impact agriculture and water resources and harm human health. For these reasons, climate impacts are important for its residents and policymakers.   
 
 ```{r}
 # Read in the data
