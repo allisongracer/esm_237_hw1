@@ -25,11 +25,28 @@ This report analyzes climate trends from
 # Read in the data
 ## Monthly data from 1915 to 2023
 LA_monthly <- read_csv(here("data/LA_monthly_1915_2023.csv")) %>% 
-  clean_names()
+  clean_names() %>% 
+  tidyr::separate(date, c("year", "month"), sep ="-", remove = FALSE)
+
+LA_monthly$year = as.numeric(LA_monthly$year)
+LA_monthly$month = as.numeric(LA_monthly$month)
 
 ## Daily data from 1981 to 2023
 LA_daily <- read_csv(here("data/LA_daily_1981_2023.csv")) %>%
-  clean_names()
+  clean_names() %>% 
+  mutate(new_date = lubridate::mdy(LA_daily$date)) %>% 
+  tidyr::separate(new_date, c("year", "month", "day"), sep ="-", remove = FALSE)
+
+LA_daily$year = as.numeric(LA_daily$year)
+LA_daily$month = as.numeric(LA_daily$month)
+LA_daily$day = as.numeric(LA_daily$day)
 ```
 
+```{r}
+# Initial data exploration
+
+ggplot(LA_monthly,aes(x=date,y=ppt_inches)) +
+  geom_line()
+
+```
 
