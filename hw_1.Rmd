@@ -1,0 +1,35 @@
+---
+title: "Climate Trends"
+author: "Allison Gracer, Caroline Shepherd, Trevor Maggart"
+date: "2023-04-12"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+library(lubridate)
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+
+###1. Overview
+
+This report analyzes climate trends from 
+
+
+```{r}
+# Read in the data
+## Monthly data from 1915 to 2023
+LA_monthly <- read_csv(here("data/LA_monthly_1915_2023.csv")) %>% 
+  clean_names()
+
+## Daily data from 1981 to 2023
+LA_daily <- read_csv(here("data/LA_daily_1981_2023.csv")) %>%
+  clean_names()
+```
+
+
