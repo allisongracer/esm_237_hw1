@@ -125,7 +125,6 @@ LA_daily_over95 <- LA_daily %>%
   summarize(count = n()) %>% 
   mutate(group = ifelse(year<2000,'first','last'))
 
-# 
 LA_daily_count <- LA_daily %>% 
   mutate(group = ifelse(year<2000, 'first', 'last')) %>% 
   group_by(group) %>% 
@@ -140,6 +139,9 @@ LA_over95_prop <- ((LA_daily_count_over95$count / LA_daily_count$count) * 100)
 ggplot() +
   theme_minimal() +
   geom_col(data = LA_daily_over95, aes(x = year, y = count, fill = group))
+
+# Temperature stats
+t.test(subset(LA_daily_over95$count,LA_daily_over95$group = 'first'),subset(LA_daily_over95$count,LA_daily_over95$group = 'last'))
 
 ```
 
