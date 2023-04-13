@@ -19,7 +19,7 @@ library(janitor)
 
 ###1. Overview
 
-This report analyzes climate trends in Los Angeles County from 1915-2023 using data from PRISM Climate Group. Specifically, the data sets used include monthly data from 1915-2023 and daily data from 1981-2023. The variables used include precipitation (inches), minimum temperature (Fahrenheit), maximum temperature (Fahrenheit), and mean temperature (Fahrenheit). 
+This report analyzes climate trends in Los Angeles County from 1915-2023 using data from PRISM Climate Group. The data sets used include monthly averages from 1915-2023 and daily measurements from 1981-2023. The variables used include precipitation (inches), minimum temperature (Fahrenheit), maximum temperature (Fahrenheit), and mean temperature (Fahrenheit). 
 
 Los Angeles is a large city in Southern California. It is predominantly urban and is home to a dense population of 12.5 million people as of 2023. Los Angeles is classified as a semi-arid desert climate, characterized by hot and dry summers and mild winters with precipitation levels that vary by year. 
 
@@ -36,6 +36,9 @@ LA_monthly <- read_csv(here("data/LA_monthly_1915_2023.csv")) %>%
 
 LA_monthly$year = as.numeric(LA_monthly$year)
 LA_monthly$month = as.numeric(LA_monthly$month)
+LA_monthly$season = ifelse(LA_monthly$month %in% c(6:9), "summer", 
+                         ifelse(LA_monthly$month %in% c(12,1,2),"winter",
+                                ifelse(LA_monthly$month %in% c(3:5),"spring", "fall")))
 
 ## Daily data from 1981 to 2023
 LA_daily <- read_csv(here("data/LA_daily_1981_2023.csv")) %>%
@@ -46,6 +49,9 @@ LA_daily <- read_csv(here("data/LA_daily_1981_2023.csv")) %>%
 LA_daily$year = as.numeric(LA_daily$year)
 LA_daily$month = as.numeric(LA_daily$month)
 LA_daily$day = as.numeric(LA_daily$day)
+LA_daily$season = ifelse(LA_daily$month %in% c(6:9), "summer", 
+                         ifelse(LA_daily$month %in% c(12,1,2),"winter",
+                                ifelse(LA_daily$month %in% c(3:5),"spring", "fall")))
 ```
 
 ```{r}
@@ -69,25 +75,15 @@ ggplot(LA_monthly, aes(x=new_date, y=tmean_degrees_f)) +
   geom_line() +
   geom_smooth(method=lm)
 
+ggplot(LA_monthly, aes(x=new_date, y=tmax_degrees_f)) +
+  geom_line() +
+  geom_smooth(method=lm)
+
 ggplot(LA_monthly, aes(x=new_date, y=ppt_inches)) +
   geom_line()
 
 #test
 ```
-
-```{r}
-first_100yrs <- LA_monthly %>% 
-  filter(year < 2001)
-
-target_time <- LA_monthly %>% 
-  filter(year >= 2001)
-
-ggplot() +
-  theme_minimal() +
-  geom_density(data=first_100yrs, aes(x=tmean_degrees_f), color = "blue") +
-  geom_density(data=target_time, aes(x=tmean_degrees_f), color = "red")
-```
-
 
 ```{r}
 # Create a subset of the daily data from 1981 - 2001
@@ -98,25 +94,24 @@ first_20yrs <- LA_daily %>%
 second_20yrs <- LA_daily %>% 
   filter(year >= 2001)
 
+#
+first_20yrs_summary <- first_20yrs %>% 
+  group_by(season) %>% 
+  summarize(count = n(),
+            tmean_mean = mean(tmean_degrees_f))
+
+second_20yrs_summary <- second_20yrs %>% 
+  group_by(season) %>% 
+  summarize(count = n(),
+            tmean_mean = mean(tmean_degrees_f))
+
 # Analyzing the tmean degrees of the daily data from the two subsets
 ggplot() +
   theme_minimal() +
   geom_density(data=first_20yrs, aes(x=tmean_degrees_f), color = "blue") +
-  geom_density(data=second_20yrs, aes(x=tmean_degrees_f), color = "red")
-
-# Analyzing the tmax degrees of the daily data from the two subsets
-ggplot() +
-  theme_minimal() +
-  geom_density(data=first_20yrs, aes(x=tmax_degrees_f), color = "blue") +
-  geom_density(data=second_20yrs, aes(x=tmax_degrees_f), color = "red")
-
-# Analyzing the tmin degrees of the daily data from the two subsets
-ggplot() +
-  theme_minimal() +
-  geom_density(data=first_20yrs, aes(x=tmin_degrees_f), color = "blue") +
-  geom_density(data=second_20yrs, aes(x=tmin_degrees_f), color = "red")
-
-# test
+  geom_density(data=second_20yrs, aes(x=tmean_degrees_f), color = "red") +
+  geom_vline(xintercept=mean(first_20yrs$tmean_degrees_f), color = 'blue') +
+  geom_vline(xintercept=mean(second_20yrs$tmean_degrees_f), color = 'red')
 ```
 
 
