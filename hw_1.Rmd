@@ -76,6 +76,20 @@ ggplot(LA_monthly, aes(x=new_date, y=ppt_inches)) +
 ```
 
 ```{r}
+first_100yrs <- LA_monthly %>% 
+  filter(year < 2001)
+
+target_time <- LA_monthly %>% 
+  filter(year >= 2001)
+
+ggplot() +
+  theme_minimal() +
+  geom_density(data=first_100yrs, aes(x=tmean_degrees_f), color = "blue") +
+  geom_density(data=target_time, aes(x=tmean_degrees_f), color = "red")
+```
+
+
+```{r}
 # Create a subset of the daily data from 1981 - 2001
 first_20yrs <- LA_daily %>% 
   filter(year < 2001)
