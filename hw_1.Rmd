@@ -31,7 +31,7 @@ The climate impacts in Los Angeles are significant due to the city's location in
 ## Monthly data from 1915 to 2023
 LA_monthly <- read_csv(here("data/LA_monthly_1915_2023.csv")) %>% 
   clean_names() %>% 
-  mutate(new_date = lubridate::ym(LA_monthly$date)) %>%
+  mutate(new_date = lubridate::ym(date)) %>%
   tidyr::separate(date, c("year", "month"), sep ="-", remove = FALSE)
 
 LA_monthly$year = as.numeric(LA_monthly$year)
@@ -40,7 +40,7 @@ LA_monthly$month = as.numeric(LA_monthly$month)
 ## Daily data from 1981 to 2023
 LA_daily <- read_csv(here("data/LA_daily_1981_2023.csv")) %>%
   clean_names() %>% 
-  mutate(new_date = lubridate::mdy(LA_daily$date)) %>% 
+  mutate(new_date = lubridate::mdy(date)) %>% 
   tidyr::separate(new_date, c("year", "month", "day"), sep ="-", remove = FALSE)
 
 LA_daily$year = as.numeric(LA_daily$year)
@@ -54,18 +54,56 @@ LA_daily$day = as.numeric(LA_daily$day)
 ggplot(LA_daily,aes(x=new_date,y=ppt_inches)) +
   geom_line()
 
-
 ggplot(LA_monthly,aes(x=new_date,y=ppt_inches)) +
   geom_line()
 
-ggplot(LA_daily, aes(x=new_date, y=tmax_degrees_f)) +
-  geom_line()
+ggplot(LA_daily, aes(x=new_date, y=tmean_degrees_f)) +
+  geom_line()+
+  geom_smooth(method=lm)
 
-ggplot(LA_monthly, aes(x=new_date, y=tmax_degrees_f)) +
-  geom_line()
+ggplot(LA_daily, aes(x=new_date, y=tmax_degrees_f)) +
+  geom_line()+
+  geom_smooth(method=lm)
+
+ggplot(LA_monthly, aes(x=new_date, y=tmean_degrees_f)) +
+  geom_line() +
+  geom_smooth(method=lm)
 
 ggplot(LA_monthly, aes(x=new_date, y=ppt_inches)) +
   geom_line()
+
+#test
 ```
+
+```{r}
+# Create a subset of the daily data from 1981 - 2001
+first_20yrs <- LA_daily %>% 
+  filter(year < 2001)
+
+# Create a subset of daily data from 2001 - 2023
+second_20yrs <- LA_daily %>% 
+  filter(year >= 2001)
+
+# Analyzing the tmean degrees of the daily data from the two subsets
+ggplot() +
+  theme_minimal() +
+  geom_density(data=first_20yrs, aes(x=tmean_degrees_f), color = "blue") +
+  geom_density(data=second_20yrs, aes(x=tmean_degrees_f), color = "red")
+
+# Analyzing the tmax degrees of the daily data from the two subsets
+ggplot() +
+  theme_minimal() +
+  geom_density(data=first_20yrs, aes(x=tmax_degrees_f), color = "blue") +
+  geom_density(data=second_20yrs, aes(x=tmax_degrees_f), color = "red")
+
+# Analyzing the tmin degrees of the daily data from the two subsets
+ggplot() +
+  theme_minimal() +
+  geom_density(data=first_20yrs, aes(x=tmin_degrees_f), color = "blue") +
+  geom_density(data=second_20yrs, aes(x=tmin_degrees_f), color = "red")
+
+# test
+```
+
 
 
