@@ -1,0 +1,129 @@
+---
+title: "Climate Trends"
+author: "Allison Gracer, Caroline Shepherd, Trevor Maggart"
+date: "2023-04-12"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+# Read in packages #test
+library(lubridate)
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+
+###1. Overview
+
+This report analyzes climate trends in Los Angeles County from 1915-2023 using data from PRISM Climate Group. The data sets used include monthly averages from 1915-2023 and daily measurements from 1981-2023. The variables used include precipitation (inches), minimum temperature (Fahrenheit), maximum temperature (Fahrenheit), and mean temperature (Fahrenheit). 
+
+Los Angeles is a large city in Southern California. It is predominantly urban and is home to a dense population of 12.5 million people as of 2023. Los Angeles is classified as a semi-arid desert climate, characterized by hot and dry summers and mild winters with precipitation levels that vary by year. 
+
+The climate impacts in Los Angeles are significant due to the city's location in Southern California, where wildfires can be a major concern. The dry, hot weather in the summer can increase the risk of wildfires, devastatingly affecting the city and surrounding areas. In addition, the city has also experienced severe droughts in recent years, which can impact agriculture and water resources and harm human health. For these reasons, climate impacts are important for its residents and policymakers.   
+
+
+```{r}
+# Read in the data
+## Monthly data from 1915 to 2023
+LA_monthly <- read_csv(here("data/LA_monthly_1915_2023.csv")) %>% 
+  clean_names() %>% 
+  mutate(new_date = lubridate::ym(date)) %>%
+  tidyr::separate(date, c("year", "month"), sep ="-", remove = FALSE)
+
+LA_monthly$year = as.numeric(LA_monthly$year)
+LA_monthly$month = as.numeric(LA_monthly$month)
+LA_monthly$season = ifelse(LA_monthly$month %in% c(6:9), "summer", 
+                         ifelse(LA_monthly$month %in% c(12,1,2),"winter",
+                                ifelse(LA_monthly$month %in% c(3:5),"spring", "fall")))
+
+## Daily data from 1981 to 2023
+LA_daily <- read_csv(here("data/LA_daily_1981_2023.csv")) %>%
+  clean_names() %>% 
+  mutate(new_date = lubridate::mdy(date)) %>% 
+  tidyr::separate(new_date, c("year", "month", "day"), sep ="-", remove = FALSE)
+
+LA_daily$year = as.numeric(LA_daily$year)
+LA_daily$month = as.numeric(LA_daily$month)
+LA_daily$day = as.numeric(LA_daily$day)
+LA_daily$season = ifelse(LA_daily$month %in% c(6:9), "summer", 
+                         ifelse(LA_daily$month %in% c(12,1,2),"winter",
+                                ifelse(LA_daily$month %in% c(3:5),"spring", "fall")))
+```
+
+```{r}
+# Looking at general temperature trends for the daily data
+daily_annual <- LA_daily %>% 
+  group_by(year) %>% 
+  summarize(tmean_avg = mean(tmean_degrees_f), 
+            tmax_avg=mean(tmax_degrees_f),
+            tmin_avg=mean(tmin_degrees_f)) %>% 
+  filter(year != 2023)
+
+ggplot() +
+  theme_minimal() +
+  geom_point(data = daily_annual, aes(x = year, y = tmax_avg), color = "#FF5E6B") +
+  stat_smooth(data = daily_annual, aes(x = year, y = tmax_avg), color = "#FF5E6B", method = "lm") +
+  geom_point(data = daily_annual, aes(x = year, y = tmean_avg), color = "#8C6299") +
+  stat_smooth(data = daily_annual, aes(x = year, y = tmean_avg), color = "#8C6299", method = "lm") +
+  geom_point(data = daily_annual, aes(x = year, y = tmin_avg), color = "#1966C6") +
+  stat_smooth(data = daily_annual, aes(x = year, y = tmin_avg), color = "#1966C6", method = "lm") +
+  scale_y_continuous(limits = c(50,80)) +
+  labs(y = "Temperature (F)\n",
+       x = "\nYear")
+```
+```{r}
+ggplot()+
+  geom_histogram(data = daily_annual, aes(x = tmean_avg))
+```
+
+
+```{r}
+# Linear Regression for Tmax
+reg_tmax=lm(tmax_avg~year, data=daily_annual)
+summary(reg_tmax)
+confint(reg_tmax,"year", level=0.95)
+
+# Linear Regression for Tmean
+reg_tmean=lm(tmean_avg~year, data=daily_annual)
+summary(reg_tmean)
+confint(reg_tmean,"year", level=0.95)
+
+# Linear Regression for Tmin
+reg_tmin=lm(tmin_avg~year, data=daily_annual)
+summary(reg_tmin)
+confint(reg_tmin,"year", level=0.95)
+```
+```{r ttest, echo=TRUE}
+
+t.test(subset(LA_daily$tmean_degrees_f, LA_daily$year %in% 1981:1991), subset(LA_daily$tmean_degrees_f, LA_daily$year %in% 2012:2022))
+
+wilcox.test(subset(daily_annual$tmean_avg, daily_annual$year %in% 1981:1991), subset(daily_annual$tmean_avg, daily_annual$year %in% 2012:2022))
+
+LA_daily_summer <- LA_daily %>% 
+  filter(season == "summer")
+
+first_dec <- LA_daily_summer %>% 
+  filter(year %in% 1981:1991)
+
+second_dec <- LA_daily_summer %>% 
+  filter(year %in% 2012:2022)
+
+ggplot() +
+  theme_minimal() +
+  geom_density(data = first_dec, aes(x = tmean_degrees_f), color = "#1966C6") +
+  geom_vline(xintercept = mean(first_dec$tmean_degrees_f), color = "#1966C6", linetype = "dashed") +
+  geom_density(data = second_dec, aes(x = tmean_degrees_f), color = "#FF5E6B") +
+  geom_vline(xintercept = mean(second_dec$tmean_degrees_f), color = "#FF5E6B", linetype = "dashed") +
+  labs(y = "Density\n",
+       x = "Temperature (F)")
+
+t.test(first_dec$tmean_degrees_f, second_dec$tmean_degrees_f)
+
+```
+
+
+
