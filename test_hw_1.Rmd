@@ -1,0 +1,141 @@
+---
+title: "Climate Trends"
+author: "Allison Gracer, Caroline Shepherd, Trevor Maggart"
+date: "2023-04-12"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+# Read in packages
+library(lubridate)
+library(tidyverse)
+library(here)
+library(janitor)
+library(Kendall)
+```
+
+
+###1. Overview
+
+This report analyzes climate trends in Los Angeles County from 1915-2023 using data from PRISM Climate Group. The data sets used include monthly averages from 1915-2023 and daily measurements from 1981-2023. The variables used include precipitation (inches), minimum temperature (Fahrenheit), maximum temperature (Fahrenheit), and mean temperature (Fahrenheit). 
+
+Los Angeles is a large city in Southern California. It is predominantly urban and is home to a dense population of 12.5 million people as of 2023. Los Angeles is classified as a semi-arid desert climate, characterized by hot and dry summers and mild winters with precipitation levels that vary by year. 
+
+The climate impacts in Los Angeles are significant due to the city's location in Southern California, where wildfires can be a major concern. The dry, hot weather in the summer can increase the risk of wildfires, devastatingly affecting the city and surrounding areas. In addition, the city has also experienced severe droughts in recent years, which can impact agriculture and water resources and harm human health. For these reasons, climate impacts are important for its residents and policymakers.   
+
+
+```{r}
+# Read in the data
+## Monthly data from 1915 to 2022
+LA_monthly <- read_csv(here("data/LA_monthly_1915_2023.csv")) %>% 
+  clean_names() %>% 
+  mutate(new_date = lubridate::ym(date)) %>%
+  tidyr::separate(date, c("year", "month"), sep ="-", remove = FALSE) %>% 
+  filter(year != 2023)
+
+
+LA_monthly$year = as.numeric(LA_monthly$year)
+LA_monthly$month = as.numeric(LA_monthly$month)
+LA_monthly$season = ifelse(LA_monthly$month %in% c(6:9), "summer", 
+                         ifelse(LA_monthly$month %in% c(12,1,2),"winter",
+                                ifelse(LA_monthly$month %in% c(3:5),"spring", "fall")))
+
+
+
+## Daily data from 1981 to 2022
+LA_daily <- read_csv(here("data/LA_daily_1981_2023.csv")) %>%
+  clean_names() %>% 
+  mutate(new_date = lubridate::mdy(date)) %>% 
+  tidyr::separate(new_date, c("year", "month", "day"), sep ="-", remove = FALSE) %>% 
+  filter(year != 2023)
+
+LA_daily$year = as.numeric(LA_daily$year)
+LA_daily$month = as.numeric(LA_daily$month)
+LA_daily$day = as.numeric(LA_daily$day)
+LA_daily$season = ifelse(LA_daily$month %in% c(6:9), "summer", 
+                         ifelse(LA_daily$month %in% c(12,1,2),"winter",
+                                ifelse(LA_daily$month %in% c(3:5),"spring", "fall")))
+
+LA_yearly <- LA_daily %>%
+  group_by(year) %>%
+  summarize(total_ppt = sum(ppt_inches, na.rm = TRUE))
+
+LA_daily$year = as.numeric(LA_daily$year)
+LA_daily$month = as.numeric(LA_daily$month)
+LA_daily$day = as.numeric(LA_daily$day)
+LA_daily$decade = cut(LA_daily$year, breaks = seq(1980, 2020, by = 10), 
+                      labels = c("1980s", "1990s", "2000s", "2010s"))
+
+LA_yearly <- LA_daily %>%
+  group_by(decade) %>%
+  summarize(total_ppt = sum(ppt_inches, na.rm = TRUE)) %>% 
+  na.omit()
+
+# run Mann-Kendall test
+mk_results <- MannKendall(LA_daily$ppt_inches)
+mk_results
+```
+
+```{r}
+# Initial data exploration
+
+ggplot(LA_daily,aes(x=new_date,y=ppt_inches)) +
+  geom_line()
+
+ggplot(LA_monthly,aes(x=new_date,y=ppt_inches)) +
+  geom_line()
+
+ggplot(LA_daily, aes(x=new_date, y=tmean_degrees_f)) +
+  geom_line()+
+  geom_smooth(method=lm)
+
+ggplot(LA_daily, aes(x=new_date, y=tmax_degrees_f)) +
+  geom_line()+
+  geom_smooth(method=lm)
+
+ggplot(LA_monthly, aes(x=new_date, y=tmean_degrees_f)) +
+  geom_line() +
+  geom_smooth(method=lm)
+
+ggplot(LA_monthly, aes(x=new_date, y=tmax_degrees_f)) +
+  geom_line() +
+  geom_smooth(method=lm)
+
+ggplot(LA_monthly, aes(x=new_date, y=ppt_inches)) +
+  geom_line()
+
+#test
+```
+
+```{r}
+# Create a subset of the daily data from 1981 - 2001
+first_20yrs <- LA_daily %>% 
+  filter(year < 2001)
+
+# Create a subset of daily data from 2001 - 2023
+second_20yrs <- LA_daily %>% 
+  filter(year >= 2001)
+
+#
+first_20yrs_summary <- first_20yrs %>% 
+  group_by(season) %>% 
+  summarize(count = n(),
+            tmean_mean = mean(tmean_degrees_f))
+
+second_20yrs_summary <- second_20yrs %>% 
+  group_by(season) %>% 
+  summarize(count = n(),
+            tmean_mean = mean(tmean_degrees_f))
+
+# Analyzing the tmean degrees of the daily data from the two subsets
+ggplot() +
+  theme_minimal() +
+  geom_density(data=first_20yrs, aes(x=tmean_degrees_f), color = "blue") +
+  geom_density(data=second_20yrs, aes(x=tmean_degrees_f), color = "red") +
+  geom_vline(xintercept=mean(first_20yrs$tmean_degrees_f), color = 'blue') +
+  geom_vline(xintercept=mean(second_20yrs$tmean_degrees_f), color = 'red')
+
+```
