@@ -1,0 +1,177 @@
+---
+title: "Climate Trends"
+author: "Allison Gracer, Caroline Shepherd, Trevor Maggart"
+date: "2023-04-12"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, include=FALSE)
+```
+
+```{r}
+# Read in packages #test
+library(lubridate)
+library(tidyverse)
+library(here)
+library(janitor)
+library(Kendall)
+library(patchwork)
+library(kableExtra)
+```
+
+
+## Overview
+
+This report analyzes climate trends in Los Angeles County from 1922-2022 using data from NOAA. The data set includes daily measurements from a weather station in downtown LA. The variables used include precipitation (inches), minimum temperature (Fahrenheit), and maximum temperature (Fahrenheit).
+
+Los Angeles is a large city in Southern California. It is predominantly urban and is home to a dense population of 12.5 million people as of 2023. Los Angeles is classified as a semi-arid desert climate, characterized by hot and dry summers and mild winters with precipitation levels that vary by year. 
+
+The climate impacts in Los Angeles are significant due to the city's location in Southern California, where wildfires can be a major concern. The dry, hot weather in the summer can increase the risk of wildfires, devastatingly affecting the city and surrounding areas. In addition, the city has also experienced severe droughts in recent years, which can impact agriculture and water resources and harm human health. For these reasons, climate impacts are important for its residents and policymakers. 
+
+### Analyzing temperature trends
+```{r}
+# Read in the data
+## Monthly data from 1915 to 2023
+climate <- read_csv(here("data/data_1922_2022.csv")) %>% 
+  clean_names() %>% 
+  mutate(new_date = lubridate::ym(date)) %>%
+  tidyr::separate(date, c("year", "month"), sep ="-", remove = FALSE)
+
+date = as.Date(climate$date)
+climate$year = as.numeric(climate$year)
+climate$month = as.numeric(climate$month)
+climate$season = ifelse(climate$month %in% c(7:9), "summer", 
+                         ifelse(climate$month %in% c(12,1,2),"winter",
+                                ifelse(climate$month %in% c(3:6),"spring", "fall")))
+```
+
+```{r}
+# TMax data
+ggplot(climate, aes(date, tmax))+geom_line()+ labs(y="Daily Maximum Temperature (degrees F)", x="Date")
+
+# Tmin data
+ggplot(climate, aes(date, tmin))+geom_line()+ labs(y="Daily Minimum Temperature (degrees F)", x="Date")
+
+# Precipitation data
+ggplot(climate, aes(date, prcp))+geom_line()+ labs(y="Daily Rainfall (in)", x="Date")
+```
+
+```{r}
+# find the row with missing data
+fillrow = which(is.na(climate$prcp))
+
+# Fill in data in the missing rows with zeros
+climate$prcp[fillrow]=0
+
+# Replot to make sure it works
+ggplot(climate, aes(date, prcp))+geom_line()+ labs(y="Daily rainfall (mm)", x="Date")
+```
+
+```{r}
+# Look at annual trends for tmax, tmin, and precipitation
+climate_annual <- climate %>% 
+  group_by(year(date)) %>% 
+  summarize(tmax=mean(tmax),
+            tmin=mean(tmin),
+            prcp=sum(prcp)) 
+
+climate_annual$date = unique(year(date))
+```
+
+```{r, include=TRUE}
+# Plot tmax and tmin
+ggplot() +
+  theme_minimal() +
+  geom_point(data = climate_annual, aes(x = date, y = tmax), color = "#FF5E6B") +
+  stat_smooth(data = climate_annual, aes(x = date, y = tmax), color = "#FF5E6B", method = "lm") +
+  geom_point(data = climate_annual, aes(x = date, y = tmin), color = "#1966C6") +
+  stat_smooth(data = climate_annual, aes(x = date, y = tmin), color = "#1966C6", method = "lm") +
+  scale_y_continuous(limits = c(50,80)) +
+  labs(y = "Temperature (F)\n",
+       x = "\nYear")
+```
+
+```{r}
+first20 <- climate_annual %>% 
+  filter(date <= 1971)
+
+last20 <- climate_annual %>% 
+  filter(date >= 1972)
+
+p1 <- ggplot() +
+  theme_minimal() +
+  geom_point(data = climate_annual, aes(x = date, y = tmax), color = "#FF5E6B") +
+  stat_smooth(data = climate_annual, aes(x = date, y = tmax), color = "#FF5E6B", method = "lm") +
+  labs(y ="Temperature (F)\n",
+       x = "Year")
+
+p2 <- ggplot() +
+  theme_minimal() +
+  geom_point(data = climate_annual, aes(x = date, y = tmin), color = "#1966C6") +
+  stat_smooth(data = climate_annual, aes(x = date, y = tmin), color = "#1966C6", method = "lm") +
+  labs(y ="Temperature (F)\n",
+       x = "Year")
+```
+
+```{r, include=TRUE}
+p1 + p2 +
+  plot_annotation(tag_levels = 'I')
+```
+```{r}
+# Linear Regression for Tmax
+reg_tmax=lm(tmax~date, data=climate_annual)
+summary(reg_tmax)
+confint(reg_tmax,"date", level=0.95)
+
+# Linear Regression for Tmin
+reg_tmin=lm(tmin~date, data=climate_annual)
+summary(reg_tmin)
+confint(reg_tmin,"date", level=0.95)
+```
+```{r, include=TRUE}
+reg_table <- cbind(c(round(reg_tmax$coefficients[[2]],3),
+                          round(reg_tmin$coefficient[[2]],3)),
+                   c("<2e-11","<1e-09"),
+                   c("0.428","0.385"),
+                   c("<2e-16","<2e-16"))
+
+rownames(reg_table) <- c("Tmax", "Tmin")
+
+kable(reg_table,
+      digits = 1,
+      booktabs = T,
+      col.names = c("Annual Temperature \nIncrease (F)", "p-value", "Tau", "p-value"),
+      caption = "") %>% 
+    add_header_above(c(" " = 1, "Linear Regression" = 2, "Mann-Kendall" = 2)) %>% 
+    kable_styling(full_width = FALSE,latex_options = c("striped", "HOLD_position")) %>% 
+    column_spec(1, bold = T)
+```
+
+
+```{r}
+MannKendall(climate_annual$tmin)
+MannKendall(climate_annual$tmax)
+MannKendall(climate_annual$prcp)
+```
+```{r}
+first20_summer <- climate %>% 
+  filter(season == "summer" & year < 1942) 
+  
+last20_summer <- climate %>% 
+  filter(season == "summer" & year > 2002)
+```
+
+```{r, include=TRUE}
+ggplot() +
+  theme_classic() +
+  geom_density(data = first20_summer, aes(x = tmax), color = "#1966C6") +
+  geom_vline(xintercept = (mean(first20_summer$tmax)), color = "darkblue", linetype = "dashed") +
+  geom_density(data = last20_summer, aes(x = tmax), color = "#FF5E6B") +
+  geom_vline(xintercept = (mean(last20_summer$tmax)), color = "red4", linetype = "dashed") +
+  labs(x = "Temperature (F)",
+       y = "Density")
+```
+
+
+
+
